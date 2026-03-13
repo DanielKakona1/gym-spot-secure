@@ -1,0 +1,27 @@
+{
+  "name": "gym-spot-secure",
+  "private": true,
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "infra/*"
+  ],
+  "overrides": {
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "@types/react": "~19.1.10"
+  },
+  "scripts": {
+    "dev:api": "npm run dev -w apps/api",
+    "test:api": "npm run test -w apps/api",
+    "dev:mobile": "npm run start -w apps/mobile",
+    "build:infra": "npm run build -w infra/cdk"
+  },
+  "devDependencies": {
+    "metro-runtime": "^0.83.5"
+  }
+}
