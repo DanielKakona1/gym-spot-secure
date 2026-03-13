@@ -1,0 +1,14 @@
+{
+  "name": "@gym-spot/infra-cdk",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "synth": "cdk synth"
+  },
+  "devDependencies": {
+    "aws-cdk-lib": "^2.160.0",
+    "constructs": "^10.3.0",
+    "typescript": "^5.7.3"
+  }
+}
