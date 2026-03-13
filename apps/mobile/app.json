@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "Gym Spot Secure",
+    "slug": "gym-spot-secure",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "plugins": [
+      "@react-native-community/datetimepicker"
+    ]
+  }
+}

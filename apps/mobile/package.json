@@ -1,0 +1,42 @@
+{
+  "name": "@gym-spot/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "test": "jest --config jest.config.cjs --runInBand"
+  },
+  "dependencies": {
+    "@expo-google-fonts/poppins": "^0.4.1",
+    "@gym-spot/shared-types": "0.1.0",
+    "@hookform/resolvers": "^3.9.1",
+    "@react-native-community/datetimepicker": "8.4.4",
+    "@react-native-picker/picker": "2.11.1",
+    "@tanstack/react-query": "^5.56.2",
+    "expo": "^54.0.0",
+    "expo-font": "^55.0.4",
+    "expo-status-bar": "~3.0.9",
+    "lottie-react-native": "~7.3.1",
+    "react": "19.1.0",
+    "react-hook-form": "^7.53.0",
+    "react-native": "0.81.5",
+    "react-native-safe-area-context": "~5.6.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@testing-library/jest-native": "^5.4.3",
+    "@testing-library/react-native": "^13.3.3",
+    "@types/react": "~19.1.10",
+    "babel-preset-expo": "^54.0.10",
+    "jest-expo": "~54.0.13",
+    "react-test-renderer": "^19.1.0",
+    "typescript": "~5.9.2"
+  }
+}
