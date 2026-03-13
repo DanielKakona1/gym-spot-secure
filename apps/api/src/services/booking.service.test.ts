@@ -157,6 +157,25 @@ describe('BookingService', () => {
     expect(otherDayCapacity.currentBookings).toBe(0);
   });
 
+  it('enforces day capacity limit across different time slots', async () => {
+    const gymModel = createGymModel([
+      {
+        id: 'gym-1',
+        name: 'Peak Club',
+        capacityLimit: 2,
+      },
+    ]);
+    const bookingModel = createBookingModel();
+    const service = createBookingService(gymModel, bookingModel);
+
+    await service.bookSlot('gym-1', { userId: 'user-1', slotTime: '2099-03-12T08:00:00.000Z' });
+    await service.bookSlot('gym-1', { userId: 'user-2', slotTime: '2099-03-12T10:00:00.000Z' });
+
+    await expect(service.bookSlot('gym-1', { userId: 'user-3', slotTime: '2099-03-12T12:00:00.000Z' })).rejects.toMatchObject({
+      code: 'CAPACITY_EXCEEDED',
+    });
+  });
+
   it('does not count checked-in users from previous days', async () => {
     const gymModel = createGymModel([
       {

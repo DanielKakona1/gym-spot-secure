@@ -59,24 +59,6 @@ export function createBookingService(
     return normalized;
   };
 
-  const countsTowardsSlotCapacity = (booking: Booking, slotTime: string, now: Date): boolean => {
-    if (toDayKey(booking.slotTime) !== toDayKey(slotTime)) {
-      return false;
-    }
-
-    const status = getStatus(booking);
-    if (status === 'CHECKED_IN') {
-      return true;
-    }
-    if (status !== 'BOOKED') {
-      return false;
-    }
-    if (booking.slotTime !== slotTime) {
-      return false;
-    }
-    return !isNoShowExpired(booking, now);
-  };
-
   const countsTowardsLiveCapacity = (booking: Booking, slotTime: string, now: Date): boolean => {
     if (toDayKey(booking.slotTime) !== toDayKey(slotTime)) {
       return false;
@@ -172,9 +154,10 @@ export function createBookingService(
       }
 
       const slotLockKey = `slot:${gymId}:${request.slotTime}`;
+      const dayLockKey = `day:${gymId}:${toDayKey(request.slotTime)}`;
       const userLockKey = `user:${request.userId}`;
 
-      return runWithLocks([slotLockKey, userLockKey], async () => {
+      return runWithLocks([dayLockKey, slotLockKey, userLockKey], async () => {
         const now = new Date();
         const userBookings = await bookingModel.listBookingsByUser(request.userId);
         const normalizedUserBookings = await Promise.all(userBookings.map((booking) => expireNoShowIfNeeded(booking, now)));
@@ -198,7 +181,7 @@ export function createBookingService(
         }
 
         const gymBookings = await expireNoShowsForGym(gymId, now);
-        const currentBookings = gymBookings.filter((booking) => countsTowardsSlotCapacity(booking, request.slotTime, now)).length;
+        const currentBookings = gymBookings.filter((booking) => countsTowardsLiveCapacity(booking, request.slotTime, now)).length;
         if (currentBookings >= gym.capacityLimit) {
           throw createCapacityExceededError('Slot is fully booked');
         }
