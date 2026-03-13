@@ -1,6 +1,9 @@
 # gym-spot-secure
 
-Technical case-study implementation for gym live-capacity and slot booking.
+Gym live-capacity and slot booking.
+
+## Screenshots
+
 
 ## Stack
 
