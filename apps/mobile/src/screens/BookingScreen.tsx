@@ -147,9 +147,9 @@ export function BookingScreen({ onGoToAdmin }: Props) {
     return keys;
   }, [slotCapacityQueries]);
   const selectedTimeIsPast = isTimeSlotInPast(selectedDate, selectedTimeKey);
-  const selectedTimeIsFull = fullTimeKeys.has(selectedTimeKey);
+  const selectedTimeIsFullFromSlots = fullTimeKeys.has(selectedTimeKey);
   const hasFullSlots = fullTimeKeys.size > 0;
-  const allSlotsFullForGym = fullTimeKeys.size >= TIME_OPTIONS.length;
+  const allSlotsFullForGymBySlots = fullTimeKeys.size >= TIME_OPTIONS.length;
   const capacityTimeKey =
     selectedTimeKey ||
     TIME_OPTIONS.find((option) => !isTimeSlotInPast(selectedDate, option.key) && !fullTimeKeys.has(option.key))?.key ||
@@ -157,6 +157,11 @@ export function BookingScreen({ onGoToAdmin }: Props) {
   const slotIso = selectedDateKey && selectedGymId ? toSlotIso(selectedDateKey, capacityTimeKey) : '';
 
   const capacityQuery = useCapacity(selectedGymId, slotIso);
+  const allSlotsFullForGymByCapacity = Boolean(
+    capacityQuery.data && capacityQuery.data.currentBookings >= capacityQuery.data.capacityLimit,
+  );
+  const allSlotsFullForGym = allSlotsFullForGymBySlots || allSlotsFullForGymByCapacity;
+  const selectedTimeIsFull = selectedTimeIsFullFromSlots || allSlotsFullForGym;
   const bookMutation = useBookSlot(selectedGymId);
   const gymsById = useMemo(() => {
     const map = new Map<string, Gym>();
@@ -181,12 +186,14 @@ export function BookingScreen({ onGoToAdmin }: Props) {
     if (!selectedTimeKey) {
       return;
     }
-    if (selectedTimeKey && !isTimeSlotInPast(selectedDate, selectedTimeKey) && !fullTimeKeys.has(selectedTimeKey)) {
+    if (selectedTimeKey && !isTimeSlotInPast(selectedDate, selectedTimeKey) && !fullTimeKeys.has(selectedTimeKey) && !allSlotsFullForGym) {
       return;
     }
-    const firstAvailable = TIME_OPTIONS.find((option) => !isTimeSlotInPast(selectedDate, option.key) && !fullTimeKeys.has(option.key));
+    const firstAvailable = TIME_OPTIONS.find(
+      (option) => !allSlotsFullForGym && !isTimeSlotInPast(selectedDate, option.key) && !fullTimeKeys.has(option.key),
+    );
     setSelectedTimeKey(firstAvailable?.key ?? '');
-  }, [canSelectDateTime, selectedDateKey, selectedDate, fullTimeKeys, selectedTimeKey]);
+  }, [allSlotsFullForGym, canSelectDateTime, selectedDateKey, selectedDate, fullTimeKeys, selectedTimeKey]);
 
   useEffect(() => {
     if (!bookMutation.isSuccess) {
@@ -394,7 +401,7 @@ export function BookingScreen({ onGoToAdmin }: Props) {
             {TIME_OPTIONS.map((option) => {
               const isBooked = bookedTimeKeysForDate.has(option.key);
               const isPast = isTimeSlotInPast(selectedDate, option.key);
-              const isFull = fullTimeKeys.has(option.key);
+              const isFull = allSlotsFullForGym || fullTimeKeys.has(option.key);
               const isSelected = option.key === selectedTimeKey;
               return (
                 <Pressable key={option.key} style={[styles.timeChip, isSelected && styles.timeChipSelected, (!canSelectDateTime || isPast || isFull) && styles.timeChipDisabled]} onPress={() => setSelectedTimeKey(option.key)} disabled={!canSelectDateTime || isPast || isFull}>
@@ -402,10 +409,10 @@ export function BookingScreen({ onGoToAdmin }: Props) {
                   <Text
                     style={[
                       styles.timeChipBadge,
-                      isFull ? styles.timeChipBadgeFull : isPast ? styles.timeChipBadgePast : !isBooked && styles.timeChipBadgeHidden,
+                      isPast ? styles.timeChipBadgePast : isFull ? styles.timeChipBadgeFull : !isBooked && styles.timeChipBadgeHidden,
                     ]}
                   >
-                    {isFull ? 'Full' : isPast ? 'Past' : 'Booked'}
+                    {isPast ? 'Past' : isFull ? 'Full' : 'Booked'}
                   </Text>
                 </Pressable>
               );
