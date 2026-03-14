@@ -1,7 +1,8 @@
 import type { Booking, User } from '@gym-spot/shared-types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SearchSelectInput } from '../components/SearchSelectInput';
 import { gymService } from '../services/gymService';
 
 function toDateTimeLabel(slotTime: string): string {
@@ -87,8 +88,8 @@ export function AdminScreen({ onBackToBooking }: Props) {
 
         <Text style={styles.subtitle}>Manage check-ins, check-outs, and cancellations.</Text>
 
-        <Text style={styles.label}>User</Text>
-        <TextInput
+        <SearchSelectInput
+          label="User"
           value={userSearch}
           onChangeText={(text) => {
             setUserSearch(text);
@@ -99,33 +100,18 @@ export function AdminScreen({ onBackToBooking }: Props) {
           }}
           onFocus={() => setShowUserResults(true)}
           placeholder={usersQuery.isLoading ? 'Loading users...' : 'Search user'}
-          placeholderTextColor="#8AA091"
-          style={styles.input}
+          showResults={showUserResults}
+          isLoading={usersQuery.isLoading}
+          options={userOptions}
+          selectedOptionId={selectedUserId}
+          getOptionLabel={(user) => user.name}
+          onSelectOption={(user) => {
+            setSelectedUserId(user.id);
+            setUserSearch(user.name);
+            setShowUserResults(false);
+          }}
+          emptyText="No matching users."
         />
-
-        {showUserResults && (
-          <View style={styles.resultsCard}>
-            {usersQuery.isLoading && <ActivityIndicator color="#1F8E46" style={styles.state} />}
-            {!usersQuery.isLoading && userOptions.length === 0 && <Text style={styles.emptyText}>No matching users.</Text>}
-            {!usersQuery.isLoading &&
-              userOptions.map((user) => {
-                const active = user.id === selectedUserId;
-                return (
-                  <Pressable
-                    key={user.id}
-                    style={[styles.resultRow, active && styles.resultRowActive]}
-                    onPress={() => {
-                      setSelectedUserId(user.id);
-                      setUserSearch(user.name);
-                      setShowUserResults(false);
-                    }}
-                  >
-                    <Text style={[styles.resultText, active && styles.resultTextActive]}>{user.name}</Text>
-                  </Pressable>
-                );
-              })}
-          </View>
-        )}
 
         <Text style={styles.label}>Active bookings</Text>
         {selectedUserId.length === 0 && <Text style={styles.hint}>Select a user to view active bookings.</Text>}
@@ -226,44 +212,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontFamily: 'Poppins',
   },
-  input: {
-    minHeight: 54,
-    borderWidth: 1,
-    borderColor: '#D2E3D7',
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    color: '#17281A',
-    fontSize: 16,
-    justifyContent: 'center',
-    fontFamily: 'Poppins',
-  },
-  resultsCard: {
-    borderWidth: 1,
-    borderColor: '#D7E8DB',
-    borderRadius: 12,
-    marginTop: 6,
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
-  },
-  resultRow: {
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-    borderTopWidth: 1,
-    borderTopColor: '#EDF4EF',
-  },
-  resultRowActive: {
-    backgroundColor: '#EAF8EE',
-  },
-  resultText: {
-    color: '#18311E',
-    fontSize: 15,
-    fontFamily: 'Poppins',
-  },
-  resultTextActive: {
-    color: '#0F6D34',
-    fontWeight: '700',
-  },
   card: {
     marginTop: 10,
     borderWidth: 1,
@@ -325,12 +273,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     color: '#C9304F',
     fontSize: 12,
-    fontFamily: 'Poppins',
-  },
-  emptyText: {
-    color: '#5A7E5D',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
     fontFamily: 'Poppins',
   },
 });

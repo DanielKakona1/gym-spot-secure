@@ -2,8 +2,9 @@ import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/dat
 import type { Booking, Gym, User } from '@gym-spot/shared-types';
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CapacityProgressBar } from '../components/CapacityProgressBar';
+import { SearchSelectInput } from '../components/SearchSelectInput';
 import { useBookSlot } from '../hooks/useBookSlot';
 import { useCapacity } from '../hooks/useCapacity';
 import { gymService } from '../services/gymService';
@@ -261,8 +262,8 @@ export function BookingScreen({ onGoToAdmin }: Props) {
           </View>
           <Text style={styles.subtitle}>Book your training slot in seconds.</Text>
 
-          <Text style={styles.label}>Gym</Text>
-          <TextInput
+          <SearchSelectInput
+            label="Gym"
             value={gymSearch}
             onChangeText={(text) => {
               setGymSearch(text);
@@ -277,39 +278,25 @@ export function BookingScreen({ onGoToAdmin }: Props) {
               setShowUserResults(false);
             }}
             placeholder={gymsQuery.isLoading ? 'Loading gyms...' : 'Search gym'}
-            placeholderTextColor="#8AA091"
-            style={styles.input}
+            showResults={showGymResults}
+            isLoading={gymsQuery.isLoading}
+            options={gymOptions}
+            selectedOptionId={selectedGymId}
+            getOptionLabel={toGymLabel}
+            onSelectOption={(gym) => {
+              setSelectedGymId(gym.id);
+              setGymSearch(toGymLabel(gym));
+              setSelectedTimeKey('');
+              setShowGymResults(false);
+              setFormError(null);
+              queryClient.invalidateQueries({ queryKey: ['capacity-by-time'] });
+              queryClient.invalidateQueries({ queryKey: ['capacity'] });
+            }}
+            emptyText="No matching gyms."
           />
-          {showGymResults && (
-            <View style={styles.resultsCard}>
-              {gymsQuery.isLoading && <ActivityIndicator color="#1F8E46" style={styles.state} />}
-              {!gymsQuery.isLoading && gymOptions.length === 0 && <Text style={styles.emptyText}>No matching gyms.</Text>}
-              {!gymsQuery.isLoading &&
-                gymOptions.map((gym) => {
-                  const active = gym.id === selectedGymId;
-                  return (
-                    <Pressable
-                      key={gym.id}
-                      style={[styles.resultRow, active && styles.resultRowActive]}
-                      onPress={() => {
-                        setSelectedGymId(gym.id);
-                        setGymSearch(toGymLabel(gym));
-                        setSelectedTimeKey('');
-                        setShowGymResults(false);
-                        setFormError(null);
-                        queryClient.invalidateQueries({ queryKey: ['capacity-by-time'] });
-                        queryClient.invalidateQueries({ queryKey: ['capacity'] });
-                      }}
-                    >
-                      <Text style={[styles.resultText, active && styles.resultTextActive]}>{toGymLabel(gym)}</Text>
-                    </Pressable>
-                  );
-                })}
-            </View>
-          )}
 
-          <Text style={styles.label}>User</Text>
-          <TextInput
+          <SearchSelectInput
+            label="User"
             value={userSearch}
             onChangeText={(text) => {
               setUserSearch(text);
@@ -324,35 +311,21 @@ export function BookingScreen({ onGoToAdmin }: Props) {
               setShowGymResults(false);
             }}
             placeholder={usersQuery.isLoading ? 'Loading users...' : 'Search user'}
-            placeholderTextColor="#8AA091"
-            style={styles.input}
+            showResults={showUserResults}
+            isLoading={usersQuery.isLoading}
+            options={userOptions}
+            selectedOptionId={selectedUserId}
+            getOptionLabel={(user) => user.name}
+            onSelectOption={(user) => {
+              setSelectedUserId(user.id);
+              setUserSearch(user.name);
+              setSelectedTimeKey('');
+              setShowUserResults(false);
+              setFormError(null);
+              queryClient.invalidateQueries({ queryKey: ['user-bookings', user.id] });
+            }}
+            emptyText="No matching users."
           />
-          {showUserResults && (
-            <View style={styles.resultsCard}>
-              {usersQuery.isLoading && <ActivityIndicator color="#1F8E46" style={styles.state} />}
-              {!usersQuery.isLoading && userOptions.length === 0 && <Text style={styles.emptyText}>No matching users.</Text>}
-              {!usersQuery.isLoading &&
-                userOptions.map((user) => {
-                  const active = user.id === selectedUserId;
-                  return (
-                    <Pressable
-                      key={user.id}
-                      style={[styles.resultRow, active && styles.resultRowActive]}
-                      onPress={() => {
-                        setSelectedUserId(user.id);
-                        setUserSearch(user.name);
-                        setSelectedTimeKey('');
-                        setShowUserResults(false);
-                        setFormError(null);
-                        queryClient.invalidateQueries({ queryKey: ['user-bookings', user.id] });
-                      }}
-                    >
-                      <Text style={[styles.resultText, active && styles.resultTextActive]}>{user.name}</Text>
-                    </Pressable>
-                  );
-                })}
-            </View>
-          )}
           {selectedUserId.length > 0 && (userBookingsQuery.data?.length ?? 0) > 0 && (
             <View style={styles.activeBookingsCard}>
               <Text style={styles.activeBookingsTitle}>Active booking</Text>
@@ -556,32 +529,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontFamily: 'Poppins',
   },
-  resultsCard: {
-    borderWidth: 1,
-    borderColor: '#D7E8DB',
-    borderRadius: 12,
-    marginTop: 6,
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
-  },
-  resultRow: {
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-    borderTopWidth: 1,
-    borderTopColor: '#EDF4EF',
-  },
-  resultRowActive: {
-    backgroundColor: '#EAF8EE',
-  },
-  resultText: {
-    color: '#18311E',
-    fontSize: 15,
-    fontFamily: 'Poppins',
-  },
-  resultTextActive: {
-    color: '#0F6D34',
-    fontWeight: '700',
-  },
   timeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -686,12 +633,6 @@ const styles = StyleSheet.create({
     color: '#EFFFF2',
     fontSize: 17,
     fontWeight: '700',
-    fontFamily: 'Poppins',
-  },
-  emptyText: {
-    color: '#5A7E5D',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
     fontFamily: 'Poppins',
   },
   activeBookingsCard: {
