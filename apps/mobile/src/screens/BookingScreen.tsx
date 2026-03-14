@@ -2,12 +2,12 @@ import type { DateTimePickerEvent } from '@react-native-community/datetimepicker
 import type { Gym, User } from '@gym-spot/shared-types';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { AppButton } from '../components/AppButton';
 import { BookingActiveBookingsCard } from '../components/BookingActiveBookingsCard';
 import { DatePickerField } from '../components/DatePickerField';
-import { InlineNotice } from '../components/InlineNotice';
 import { LiveCapacityCard } from '../components/LiveCapacityCard';
+import { NoticesStack } from '../components/NoticesStack';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { SearchSelectInput } from '../components/SearchSelectInput';
 import { TimeSlotGrid } from '../components/TimeSlotGrid';
@@ -254,7 +254,6 @@ export function BookingScreen({ onGoToAdmin }: Props) {
             onDone={() => setShowDatePicker(false)}
           />
 
-          <Text style={styles.label}>Time</Text>
           <TimeSlotGrid
             options={TIME_OPTIONS}
             selectedTimeKey={selectedTimeKey}
@@ -265,16 +264,49 @@ export function BookingScreen({ onGoToAdmin }: Props) {
             onSelectTime={setSelectedTimeKey}
           />
 
-          {!canSelectDateTime && <InlineNotice>Select gym and user first to enable date and time.</InlineNotice>}
-          {hasActiveBookingForSelectedDay && <InlineNotice>This user already has an active booking for this day.</InlineNotice>}
-          {hasFullSlots && <InlineNotice>Full slots are disabled.</InlineNotice>}
-          {selectedUserId.length > 0 && userBookingsQuery.isLoading && <InlineNotice>Refreshing this user’s booked slots…</InlineNotice>}
-          {allSlotsFullForGym && <InlineNotice variant="error">This gym is fully booked for this date.</InlineNotice>}
-          {selectedTimeIsBooked && <InlineNotice variant="error">This selected time is already booked for this user.</InlineNotice>}
-          {formError && <InlineNotice variant="error">{formError}</InlineNotice>}
-          {bookMutation.isPending && <ActivityIndicator color="#1F8E46" style={styles.state} />}
-          {showSuccessNotice && <InlineNotice testID="booking-success" variant="success">Booking confirmed.</InlineNotice>}
-          {bookMutation.isError && <InlineNotice testID="booking-error" variant="error">{bookMutation.error.message}</InlineNotice>}
+          <NoticesStack
+            notices={[
+              !canSelectDateTime && { key: 'select-first', message: 'Select gym and user first to enable date and time.' },
+              hasActiveBookingForSelectedDay && {
+                key: 'active-booking-day',
+                message: 'This user already has an active booking for this day.',
+              },
+              hasFullSlots && { key: 'full-slots-disabled', message: 'Full slots are disabled.' },
+              selectedUserId.length > 0 &&
+                userBookingsQuery.isLoading && {
+                  key: 'refreshing-user-bookings',
+                  message: 'Refreshing this user’s booked slots…',
+                },
+              allSlotsFullForGym && {
+                key: 'gym-fully-booked',
+                message: 'This gym is fully booked for this date.',
+                variant: 'error',
+              },
+              selectedTimeIsBooked && {
+                key: 'time-already-booked',
+                message: 'This selected time is already booked for this user.',
+                variant: 'error',
+              },
+              Boolean(formError) && {
+                key: 'form-error',
+                message: formError ?? '',
+                variant: 'error',
+              },
+              showSuccessNotice && {
+                key: 'booking-success',
+                message: 'Booking confirmed.',
+                variant: 'success',
+                testID: 'booking-success',
+              },
+              bookMutation.isError && {
+                key: 'booking-error',
+                message: bookMutation.error.message,
+                variant: 'error',
+                testID: 'booking-error',
+              },
+            ]}
+            showLoading={bookMutation.isPending}
+          />
 
         </View>
       </ScrollView>
@@ -311,17 +343,6 @@ const styles = StyleSheet.create({
   },
   overlay: {
     marginTop: 4,
-  },
-  label: {
-    marginTop: 10,
-    marginBottom: 6,
-    color: '#26482E',
-    fontSize: 14,
-    fontWeight: '600',
-    fontFamily: 'Poppins',
-  },
-  state: {
-    marginTop: 10,
   },
   submitButton: {
     marginTop: 12,

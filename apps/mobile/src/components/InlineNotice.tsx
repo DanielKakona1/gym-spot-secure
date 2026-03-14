@@ -1,6 +1,6 @@
 import { StyleSheet, Text, type StyleProp, type TextStyle } from 'react-native';
 
-type NoticeVariant = 'hint' | 'error' | 'success';
+export type NoticeVariant = 'hint' | 'error' | 'success';
 
 interface InlineNoticeProps {
   children: string;

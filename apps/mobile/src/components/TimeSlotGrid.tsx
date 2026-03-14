@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { SectionLabel } from './SectionLabel';
 
 interface TimeOption {
   key: string;
@@ -6,6 +7,7 @@ interface TimeOption {
 }
 
 interface TimeSlotGridProps {
+  label?: string;
   options: readonly TimeOption[];
   selectedTimeKey: string;
   canSelectDateTime: boolean;
@@ -16,6 +18,7 @@ interface TimeSlotGridProps {
 }
 
 export function TimeSlotGrid({
+  label = 'Time',
   options,
   selectedTimeKey,
   canSelectDateTime,
@@ -25,33 +28,36 @@ export function TimeSlotGrid({
   onSelectTime,
 }: TimeSlotGridProps) {
   return (
-    <View style={styles.timeGrid}>
-      {options.map((option) => {
-        const isBooked = isTimeSlotBooked(option.key);
-        const isPast = isTimeSlotPast(option.key);
-        const isFull = isTimeSlotFull(option.key);
-        const isSelected = option.key === selectedTimeKey;
+    <>
+      <SectionLabel label={label} />
+      <View style={styles.timeGrid}>
+        {options.map((option) => {
+          const isBooked = isTimeSlotBooked(option.key);
+          const isPast = isTimeSlotPast(option.key);
+          const isFull = isTimeSlotFull(option.key);
+          const isSelected = option.key === selectedTimeKey;
 
-        return (
-          <Pressable
-            key={option.key}
-            style={[styles.timeChip, isSelected && styles.timeChipSelected, (!canSelectDateTime || isPast || isFull) && styles.timeChipDisabled]}
-            onPress={() => onSelectTime(option.key)}
-            disabled={!canSelectDateTime || isPast || isFull}
-          >
-            <Text style={[styles.timeChipText, isSelected && styles.timeChipTextSelected]}>{option.label}</Text>
-            <Text
-              style={[
-                styles.timeChipBadge,
-                isPast ? styles.timeChipBadgePast : isFull ? styles.timeChipBadgeFull : !isBooked && styles.timeChipBadgeHidden,
-              ]}
+          return (
+            <Pressable
+              key={option.key}
+              style={[styles.timeChip, isSelected && styles.timeChipSelected, (!canSelectDateTime || isPast || isFull) && styles.timeChipDisabled]}
+              onPress={() => onSelectTime(option.key)}
+              disabled={!canSelectDateTime || isPast || isFull}
             >
-              {isPast ? 'Past' : isFull ? 'Full' : 'Booked'}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
+              <Text style={[styles.timeChipText, isSelected && styles.timeChipTextSelected]}>{option.label}</Text>
+              <Text
+                style={[
+                  styles.timeChipBadge,
+                  isPast ? styles.timeChipBadgePast : isFull ? styles.timeChipBadgeFull : !isBooked && styles.timeChipBadgeHidden,
+                ]}
+              >
+                {isPast ? 'Past' : isFull ? 'Full' : 'Booked'}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </>
   );
 }
 

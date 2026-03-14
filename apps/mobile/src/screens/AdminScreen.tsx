@@ -1,9 +1,10 @@
 import type { Booking, User } from '@gym-spot/shared-types';
 import { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { AdminBookingCard } from '../components/AdminBookingCard';
-import { InlineNotice } from '../components/InlineNotice';
+import { NoticesStack } from '../components/NoticesStack';
 import { ScreenHeader } from '../components/ScreenHeader';
+import { SectionLabel } from '../components/SectionLabel';
 import { SearchSelectInput } from '../components/SearchSelectInput';
 import { useBookingAdminActions } from '../hooks/useBookingAdminActions';
 import { useUserBookings } from '../hooks/useUserBookings';
@@ -79,11 +80,29 @@ export function AdminScreen({ onBackToBooking }: Props) {
           emptyText="No matching users."
         />
 
-        <Text style={styles.label}>Active bookings</Text>
-        {selectedUserId.length === 0 && <InlineNotice>Select a user to view active bookings.</InlineNotice>}
-        {selectedUserId.length > 0 && bookingsQuery.isLoading && <ActivityIndicator color="#1F8E46" style={styles.state} />}
-        {bookingsQuery.isError && <InlineNotice variant="error">{bookingsQuery.error.message}</InlineNotice>}
-        {selectedUserId.length > 0 && !bookingsQuery.isLoading && (bookingsQuery.data?.length ?? 0) === 0 && <InlineNotice>No active bookings for this user.</InlineNotice>}
+        <SectionLabel label="Active bookings" />
+        <NoticesStack
+          notices={[
+            selectedUserId.length === 0 && { key: 'select-user', message: 'Select a user to view active bookings.' },
+            bookingsQuery.isError && {
+              key: 'bookings-error',
+              message: bookingsQuery.error.message,
+              variant: 'error',
+            },
+            selectedUserId.length > 0 &&
+              !bookingsQuery.isLoading &&
+              (bookingsQuery.data?.length ?? 0) === 0 && {
+                key: 'no-bookings',
+                message: 'No active bookings for this user.',
+              },
+            actionMutation.isError && {
+              key: 'action-error',
+              message: actionMutation.error.message,
+              variant: 'error',
+            },
+          ]}
+          showLoading={(selectedUserId.length > 0 && bookingsQuery.isLoading) || actionMutation.isPending}
+        />
 
         {(bookingsQuery.data ?? []).map((booking) => (
           <AdminBookingCard
@@ -99,9 +118,6 @@ export function AdminScreen({ onBackToBooking }: Props) {
             formatSlotTime={toDateTimeLabel}
           />
         ))}
-
-        {actionMutation.isPending && <ActivityIndicator color="#1F8E46" style={styles.state} />}
-        {actionMutation.isError && <InlineNotice variant="error">{actionMutation.error.message}</InlineNotice>}
       </ScrollView>
     </View>
   );
@@ -117,16 +133,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 26,
     paddingBottom: 24,
-  },
-  label: {
-    marginTop: 10,
-    marginBottom: 6,
-    color: '#26482E',
-    fontSize: 14,
-    fontWeight: '600',
-    fontFamily: 'Poppins',
-  },
-  state: {
-    marginTop: 10,
   },
 });
