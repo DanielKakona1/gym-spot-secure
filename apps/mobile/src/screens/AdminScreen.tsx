@@ -1,8 +1,10 @@
 import type { Booking, User } from '@gym-spot/shared-types';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SearchSelectInput } from '../components/SearchSelectInput';
+import { useUserBookings } from '../hooks/useUserBookings';
+import { useUsers } from '../hooks/useUsers';
 import { gymService } from '../services/gymService';
 
 function toDateTimeLabel(slotTime: string): string {
@@ -41,18 +43,8 @@ export function AdminScreen({ onBackToBooking }: Props) {
   const [selectedUserId, setSelectedUserId] = useState('');
   const [showUserResults, setShowUserResults] = useState(false);
 
-  const usersQuery = useQuery({
-    queryKey: ['users'],
-    queryFn: () => gymService.listUsers(),
-  });
-
-  const bookingsQuery = useQuery({
-    queryKey: ['user-bookings', selectedUserId],
-    queryFn: () => gymService.listUserBookings(selectedUserId),
-    enabled: selectedUserId.length > 0,
-    staleTime: 0,
-    refetchOnMount: 'always',
-  });
+  const usersQuery = useUsers();
+  const bookingsQuery = useUserBookings(selectedUserId);
 
   const userOptions = useMemo(
     () => (usersQuery.data ?? []).filter((user: User) => user.name.toLowerCase().includes(userSearch.trim().toLowerCase())),

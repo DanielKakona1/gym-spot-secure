@@ -1,12 +1,15 @@
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import type { Booking, Gym, User } from '@gym-spot/shared-types';
-import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueries, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CapacityProgressBar } from '../components/CapacityProgressBar';
 import { SearchSelectInput } from '../components/SearchSelectInput';
 import { useBookSlot } from '../hooks/useBookSlot';
 import { useCapacity } from '../hooks/useCapacity';
+import { useGyms } from '../hooks/useGyms';
+import { useUserBookings } from '../hooks/useUserBookings';
+import { useUsers } from '../hooks/useUsers';
 import { gymService } from '../services/gymService';
 
 const TIME_OPTIONS = [
@@ -91,21 +94,9 @@ export function BookingScreen({ onGoToAdmin }: Props) {
   const [showSuccessNotice, setShowSuccessNotice] = useState(false);
   const minimumDate = useMemo(() => startOfToday(), []);
 
-  const gymsQuery = useQuery({
-    queryKey: ['gyms'],
-    queryFn: () => gymService.listGyms(),
-  });
-  const usersQuery = useQuery({
-    queryKey: ['users'],
-    queryFn: () => gymService.listUsers(),
-  });
-  const userBookingsQuery = useQuery({
-    queryKey: ['user-bookings', selectedUserId],
-    queryFn: () => gymService.listUserBookings(selectedUserId),
-    enabled: selectedUserId.length > 0,
-    staleTime: 0,
-    refetchOnMount: 'always',
-  });
+  const gymsQuery = useGyms();
+  const usersQuery = useUsers();
+  const userBookingsQuery = useUserBookings(selectedUserId);
 
   const selectedDateKey = useMemo(() => (selectedDate ? toDateKey(selectedDate) : ''), [selectedDate]);
 
