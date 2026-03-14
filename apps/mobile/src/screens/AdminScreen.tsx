@@ -2,6 +2,7 @@ import type { Booking, User } from '@gym-spot/shared-types';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AdminBookingCard } from '../components/AdminBookingCard';
+import { InlineNotice } from '../components/InlineNotice';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { SearchSelectInput } from '../components/SearchSelectInput';
 import { useBookingAdminActions } from '../hooks/useBookingAdminActions';
@@ -79,10 +80,10 @@ export function AdminScreen({ onBackToBooking }: Props) {
         />
 
         <Text style={styles.label}>Active bookings</Text>
-        {selectedUserId.length === 0 && <Text style={styles.hint}>Select a user to view active bookings.</Text>}
+        {selectedUserId.length === 0 && <InlineNotice>Select a user to view active bookings.</InlineNotice>}
         {selectedUserId.length > 0 && bookingsQuery.isLoading && <ActivityIndicator color="#1F8E46" style={styles.state} />}
-        {bookingsQuery.isError && <Text style={styles.error}>{bookingsQuery.error.message}</Text>}
-        {selectedUserId.length > 0 && !bookingsQuery.isLoading && (bookingsQuery.data?.length ?? 0) === 0 && <Text style={styles.hint}>No active bookings for this user.</Text>}
+        {bookingsQuery.isError && <InlineNotice variant="error">{bookingsQuery.error.message}</InlineNotice>}
+        {selectedUserId.length > 0 && !bookingsQuery.isLoading && (bookingsQuery.data?.length ?? 0) === 0 && <InlineNotice>No active bookings for this user.</InlineNotice>}
 
         {(bookingsQuery.data ?? []).map((booking) => (
           <AdminBookingCard
@@ -100,7 +101,7 @@ export function AdminScreen({ onBackToBooking }: Props) {
         ))}
 
         {actionMutation.isPending && <ActivityIndicator color="#1F8E46" style={styles.state} />}
-        {actionMutation.isError && <Text style={styles.error}>{actionMutation.error.message}</Text>}
+        {actionMutation.isError && <InlineNotice variant="error">{actionMutation.error.message}</InlineNotice>}
       </ScrollView>
     </View>
   );
@@ -125,19 +126,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontFamily: 'Poppins',
   },
-  hint: {
-    marginTop: 8,
-    color: '#486F4E',
-    fontSize: 12,
-    fontFamily: 'Poppins',
-  },
   state: {
     marginTop: 10,
-  },
-  error: {
-    marginTop: 8,
-    color: '#C9304F',
-    fontSize: 12,
-    fontFamily: 'Poppins',
   },
 });

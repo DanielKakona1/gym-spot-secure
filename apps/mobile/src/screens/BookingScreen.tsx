@@ -6,6 +6,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleShe
 import { AppButton } from '../components/AppButton';
 import { BookingActiveBookingsCard } from '../components/BookingActiveBookingsCard';
 import { DatePickerField } from '../components/DatePickerField';
+import { InlineNotice } from '../components/InlineNotice';
 import { LiveCapacityCard } from '../components/LiveCapacityCard';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { SearchSelectInput } from '../components/SearchSelectInput';
@@ -264,16 +265,16 @@ export function BookingScreen({ onGoToAdmin }: Props) {
             onSelectTime={setSelectedTimeKey}
           />
 
-          {!canSelectDateTime && <Text style={styles.hint}>Select gym and user first to enable date and time.</Text>}
-          {hasActiveBookingForSelectedDay && <Text style={styles.hint}>This user already has an active booking for this day.</Text>}
-          {hasFullSlots && <Text style={styles.hint}>Full slots are disabled.</Text>}
-          {selectedUserId.length > 0 && userBookingsQuery.isLoading && <Text style={styles.hint}>Refreshing this user’s booked slots…</Text>}
-          {allSlotsFullForGym && <Text style={styles.error}>This gym is fully booked for this date.</Text>}
-          {selectedTimeIsBooked && <Text style={styles.error}>This selected time is already booked for this user.</Text>}
-          {formError && <Text style={styles.error}>{formError}</Text>}
+          {!canSelectDateTime && <InlineNotice>Select gym and user first to enable date and time.</InlineNotice>}
+          {hasActiveBookingForSelectedDay && <InlineNotice>This user already has an active booking for this day.</InlineNotice>}
+          {hasFullSlots && <InlineNotice>Full slots are disabled.</InlineNotice>}
+          {selectedUserId.length > 0 && userBookingsQuery.isLoading && <InlineNotice>Refreshing this user’s booked slots…</InlineNotice>}
+          {allSlotsFullForGym && <InlineNotice variant="error">This gym is fully booked for this date.</InlineNotice>}
+          {selectedTimeIsBooked && <InlineNotice variant="error">This selected time is already booked for this user.</InlineNotice>}
+          {formError && <InlineNotice variant="error">{formError}</InlineNotice>}
           {bookMutation.isPending && <ActivityIndicator color="#1F8E46" style={styles.state} />}
-          {showSuccessNotice && <Text testID="booking-success" style={styles.success}>Booking confirmed.</Text>}
-          {bookMutation.isError && <Text testID="booking-error" style={styles.error}>{bookMutation.error.message}</Text>}
+          {showSuccessNotice && <InlineNotice testID="booking-success" variant="success">Booking confirmed.</InlineNotice>}
+          {bookMutation.isError && <InlineNotice testID="booking-error" variant="error">{bookMutation.error.message}</InlineNotice>}
 
         </View>
       </ScrollView>
@@ -319,26 +320,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontFamily: 'Poppins',
   },
-  hint: {
-    marginTop: 8,
-    color: '#486F4E',
-    fontSize: 12,
-    fontFamily: 'Poppins',
-  },
   state: {
     marginTop: 10,
-  },
-  success: {
-    marginTop: 10,
-    color: '#1B8743',
-    fontWeight: '700',
-    fontFamily: 'Poppins',
-  },
-  error: {
-    marginTop: 8,
-    color: '#C9304F',
-    fontSize: 12,
-    fontFamily: 'Poppins',
   },
   submitButton: {
     marginTop: 12,
