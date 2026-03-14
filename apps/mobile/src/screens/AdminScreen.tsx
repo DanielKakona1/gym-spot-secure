@@ -1,9 +1,10 @@
 import type { Booking, User } from '@gym-spot/shared-types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SearchSelectInput } from '../components/SearchSelectInput';
 import { useUserBookings } from '../hooks/useUserBookings';
+import { useSearchSelect } from '../hooks/useSearchSelect';
 import { useUsers } from '../hooks/useUsers';
 import { gymService } from '../services/gymService';
 
@@ -39,17 +40,17 @@ interface Props {
 
 export function AdminScreen({ onBackToBooking }: Props) {
   const queryClient = useQueryClient();
-  const [userSearch, setUserSearch] = useState('');
   const [selectedUserId, setSelectedUserId] = useState('');
-  const [showUserResults, setShowUserResults] = useState(false);
 
   const usersQuery = useUsers();
+  const userSelect = useSearchSelect<User>({
+    options: usersQuery.data ?? [],
+    getOptionLabel: (user) => user.name,
+    onClear: () => {
+      setSelectedUserId('');
+    },
+  });
   const bookingsQuery = useUserBookings(selectedUserId);
-
-  const userOptions = useMemo(
-    () => (usersQuery.data ?? []).filter((user: User) => user.name.toLowerCase().includes(userSearch.trim().toLowerCase())),
-    [usersQuery.data, userSearch],
-  );
 
   const actionMutation = useMutation({
     mutationFn: async ({ action, booking }: { action: 'CHECK_IN' | 'CHECK_OUT' | 'CANCEL'; booking: Booking }) => {
@@ -82,25 +83,18 @@ export function AdminScreen({ onBackToBooking }: Props) {
 
         <SearchSelectInput
           label="User"
-          value={userSearch}
-          onChangeText={(text) => {
-            setUserSearch(text);
-            setShowUserResults(true);
-            if (text.trim().length === 0) {
-              setSelectedUserId('');
-            }
-          }}
-          onFocus={() => setShowUserResults(true)}
+          value={userSelect.searchValue}
+          onChangeText={userSelect.onChangeText}
+          onFocus={userSelect.onFocus}
           placeholder={usersQuery.isLoading ? 'Loading users...' : 'Search user'}
-          showResults={showUserResults}
+          showResults={userSelect.showResults}
           isLoading={usersQuery.isLoading}
-          options={userOptions}
+          options={userSelect.filteredOptions}
           selectedOptionId={selectedUserId}
           getOptionLabel={(user) => user.name}
           onSelectOption={(user) => {
             setSelectedUserId(user.id);
-            setUserSearch(user.name);
-            setShowUserResults(false);
+            userSelect.onSelectOption(user);
           }}
           emptyText="No matching users."
         />

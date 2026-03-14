@@ -8,6 +8,7 @@ import { SearchSelectInput } from '../components/SearchSelectInput';
 import { useBookSlot } from '../hooks/useBookSlot';
 import { useCapacity } from '../hooks/useCapacity';
 import { useGyms } from '../hooks/useGyms';
+import { useSearchSelect } from '../hooks/useSearchSelect';
 import { useUserBookings } from '../hooks/useUserBookings';
 import { useUsers } from '../hooks/useUsers';
 import { gymService } from '../services/gymService';
@@ -81,21 +82,31 @@ interface Props {
 
 export function BookingScreen({ onGoToAdmin }: Props) {
   const queryClient = useQueryClient();
-  const [selectedGymId, setSelectedGymId] = useState('');
-  const [selectedUserId, setSelectedUserId] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date | null>(startOfToday());
   const [selectedTimeKey, setSelectedTimeKey] = useState<string>('');
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [gymSearch, setGymSearch] = useState('');
-  const [userSearch, setUserSearch] = useState('');
-  const [showGymResults, setShowGymResults] = useState(false);
-  const [showUserResults, setShowUserResults] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [showSuccessNotice, setShowSuccessNotice] = useState(false);
   const minimumDate = useMemo(() => startOfToday(), []);
 
   const gymsQuery = useGyms();
   const usersQuery = useUsers();
+  const gymSelect = useSearchSelect<Gym>({
+    options: gymsQuery.data ?? [],
+    getOptionLabel: toGymLabel,
+    onClear: () => {
+      setSelectedTimeKey('');
+    },
+  });
+  const userSelect = useSearchSelect<User>({
+    options: usersQuery.data ?? [],
+    getOptionLabel: (user) => user.name,
+    onClear: () => {
+      setSelectedTimeKey('');
+    },
+  });
+  const selectedGymId = gymSelect.selectedId;
+  const selectedUserId = userSelect.selectedId;
   const userBookingsQuery = useUserBookings(selectedUserId);
 
   const selectedDateKey = useMemo(() => (selectedDate ? toDateKey(selectedDate) : ''), [selectedDate]);
@@ -160,15 +171,6 @@ export function BookingScreen({ onGoToAdmin }: Props) {
     (gymsQuery.data ?? []).forEach((gym) => map.set(gym.id, gym));
     return map;
   }, [gymsQuery.data]);
-
-  const gymOptions = useMemo(
-    () => (gymsQuery.data ?? []).filter((gym: Gym) => gym.name.toLowerCase().includes(gymSearch.trim().toLowerCase())),
-    [gymsQuery.data, gymSearch],
-  );
-  const userOptions = useMemo(
-    () => (usersQuery.data ?? []).filter((user: User) => user.name.toLowerCase().includes(userSearch.trim().toLowerCase())),
-    [usersQuery.data, userSearch],
-  );
 
   useEffect(() => {
     if (!canSelectDateTime || !selectedDateKey) {
@@ -255,30 +257,21 @@ export function BookingScreen({ onGoToAdmin }: Props) {
 
           <SearchSelectInput
             label="Gym"
-            value={gymSearch}
-            onChangeText={(text) => {
-              setGymSearch(text);
-              setShowGymResults(true);
-              if (text.trim().length === 0) {
-                setSelectedGymId('');
-                setSelectedTimeKey('');
-              }
-            }}
+            value={gymSelect.searchValue}
+            onChangeText={gymSelect.onChangeText}
             onFocus={() => {
-              setShowGymResults(true);
-              setShowUserResults(false);
+              gymSelect.onFocus();
+              userSelect.setShowResults(false);
             }}
             placeholder={gymsQuery.isLoading ? 'Loading gyms...' : 'Search gym'}
-            showResults={showGymResults}
+            showResults={gymSelect.showResults}
             isLoading={gymsQuery.isLoading}
-            options={gymOptions}
+            options={gymSelect.filteredOptions}
             selectedOptionId={selectedGymId}
             getOptionLabel={toGymLabel}
             onSelectOption={(gym) => {
-              setSelectedGymId(gym.id);
-              setGymSearch(toGymLabel(gym));
+              gymSelect.onSelectOption(gym);
               setSelectedTimeKey('');
-              setShowGymResults(false);
               setFormError(null);
               queryClient.invalidateQueries({ queryKey: ['capacity-by-time'] });
               queryClient.invalidateQueries({ queryKey: ['capacity'] });
@@ -288,30 +281,21 @@ export function BookingScreen({ onGoToAdmin }: Props) {
 
           <SearchSelectInput
             label="User"
-            value={userSearch}
-            onChangeText={(text) => {
-              setUserSearch(text);
-              setShowUserResults(true);
-              if (text.trim().length === 0) {
-                setSelectedUserId('');
-                setSelectedTimeKey('');
-              }
-            }}
+            value={userSelect.searchValue}
+            onChangeText={userSelect.onChangeText}
             onFocus={() => {
-              setShowUserResults(true);
-              setShowGymResults(false);
+              userSelect.onFocus();
+              gymSelect.setShowResults(false);
             }}
             placeholder={usersQuery.isLoading ? 'Loading users...' : 'Search user'}
-            showResults={showUserResults}
+            showResults={userSelect.showResults}
             isLoading={usersQuery.isLoading}
-            options={userOptions}
+            options={userSelect.filteredOptions}
             selectedOptionId={selectedUserId}
             getOptionLabel={(user) => user.name}
             onSelectOption={(user) => {
-              setSelectedUserId(user.id);
-              setUserSearch(user.name);
+              userSelect.onSelectOption(user);
               setSelectedTimeKey('');
-              setShowUserResults(false);
               setFormError(null);
               queryClient.invalidateQueries({ queryKey: ['user-bookings', user.id] });
             }}
