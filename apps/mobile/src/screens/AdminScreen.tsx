@@ -1,7 +1,9 @@
 import type { Booking, User } from '@gym-spot/shared-types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AdminBookingCard } from '../components/AdminBookingCard';
+import { ScreenHeader } from '../components/ScreenHeader';
 import { SearchSelectInput } from '../components/SearchSelectInput';
 import { useUserBookings } from '../hooks/useUserBookings';
 import { useSearchSelect } from '../hooks/useSearchSelect';
@@ -16,10 +18,6 @@ function toDateTimeLabel(slotTime: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
-}
-
-function toStatusLabel(booking: Booking): string {
-  return booking.status ?? 'BOOKED';
 }
 
 function canCheckIn(booking: Booking): boolean {
@@ -72,14 +70,12 @@ export function AdminScreen({ onBackToBooking }: Props) {
   return (
     <View style={styles.wrapper}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <View style={styles.headerRow}>
-          <Text style={styles.title}>Admin</Text>
-          <Pressable style={styles.backButton} onPress={onBackToBooking}>
-            <Text style={styles.backButtonText}>Go to Booking</Text>
-          </Pressable>
-        </View>
-
-        <Text style={styles.subtitle}>Manage check-ins, check-outs, and cancellations.</Text>
+        <ScreenHeader
+          title="Admin"
+          subtitle="Manage check-ins, check-outs, and cancellations."
+          actionLabel="Go to Booking"
+          onActionPress={onBackToBooking}
+        />
 
         <SearchSelectInput
           label="User"
@@ -106,37 +102,18 @@ export function AdminScreen({ onBackToBooking }: Props) {
         {selectedUserId.length > 0 && !bookingsQuery.isLoading && (bookingsQuery.data?.length ?? 0) === 0 && <Text style={styles.hint}>No active bookings for this user.</Text>}
 
         {(bookingsQuery.data ?? []).map((booking) => (
-          <View key={booking.id} style={styles.card}>
-            <Text style={styles.cardTitle}>{toDateTimeLabel(booking.slotTime)}</Text>
-            <Text style={styles.cardMeta}>Gym: {booking.gymId}</Text>
-            <Text style={styles.cardMeta}>Status: {toStatusLabel(booking)}</Text>
-
-            <View style={styles.actionsRow}>
-              <Pressable
-                style={[styles.actionButton, !canCheckIn(booking) && styles.actionButtonDisabled]}
-                disabled={!canCheckIn(booking) || actionMutation.isPending}
-                onPress={() => actionMutation.mutate({ action: 'CHECK_IN', booking })}
-              >
-                <Text style={styles.actionButtonText}>Check In</Text>
-              </Pressable>
-
-              <Pressable
-                style={[styles.actionButton, !canCheckOut(booking) && styles.actionButtonDisabled]}
-                disabled={!canCheckOut(booking) || actionMutation.isPending}
-                onPress={() => actionMutation.mutate({ action: 'CHECK_OUT', booking })}
-              >
-                <Text style={styles.actionButtonText}>Check Out</Text>
-              </Pressable>
-
-              <Pressable
-                style={[styles.actionButtonDanger, !canCancel(booking) && styles.actionButtonDisabled]}
-                disabled={!canCancel(booking) || actionMutation.isPending}
-                onPress={() => actionMutation.mutate({ action: 'CANCEL', booking })}
-              >
-                <Text style={styles.actionButtonText}>Cancel</Text>
-              </Pressable>
-            </View>
-          </View>
+          <AdminBookingCard
+            key={booking.id}
+            booking={booking}
+            isPending={actionMutation.isPending}
+            canCheckIn={canCheckIn(booking)}
+            canCheckOut={canCheckOut(booking)}
+            canCancel={canCancel(booking)}
+            onCheckIn={() => actionMutation.mutate({ action: 'CHECK_IN', booking })}
+            onCheckOut={() => actionMutation.mutate({ action: 'CHECK_OUT', booking })}
+            onCancel={() => actionMutation.mutate({ action: 'CANCEL', booking })}
+            formatSlotTime={toDateTimeLabel}
+          />
         ))}
 
         {actionMutation.isPending && <ActivityIndicator color="#1F8E46" style={styles.state} />}
@@ -157,93 +134,12 @@ const styles = StyleSheet.create({
     paddingTop: 26,
     paddingBottom: 24,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  title: {
-    color: '#132416',
-    fontSize: 34,
-    fontWeight: '700',
-    fontFamily: 'Poppins',
-  },
-  subtitle: {
-    color: '#4A6450',
-    marginTop: 6,
-    marginBottom: 18,
-    fontSize: 15,
-    fontFamily: 'Poppins',
-  },
-  backButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#CEE8D4',
-    backgroundColor: '#FFFFFF',
-  },
-  backButtonText: {
-    color: '#116F35',
-    fontSize: 12,
-    fontWeight: '700',
-    fontFamily: 'Poppins',
-  },
   label: {
     marginTop: 10,
     marginBottom: 6,
     color: '#26482E',
     fontSize: 14,
     fontWeight: '600',
-    fontFamily: 'Poppins',
-  },
-  card: {
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: '#CEE8D4',
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    padding: 12,
-    gap: 4,
-  },
-  cardTitle: {
-    color: '#143319',
-    fontSize: 14,
-    fontWeight: '700',
-    fontFamily: 'Poppins',
-  },
-  cardMeta: {
-    color: '#355E3F',
-    fontSize: 12,
-    fontFamily: 'Poppins',
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 8,
-  },
-  actionButton: {
-    flex: 1,
-    borderRadius: 10,
-    backgroundColor: '#1F8E46',
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  actionButtonDanger: {
-    flex: 1,
-    borderRadius: 10,
-    backgroundColor: '#C9304F',
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  actionButtonDisabled: {
-    opacity: 0.45,
-  },
-  actionButtonText: {
-    color: '#F2FFF5',
-    fontSize: 12,
-    fontWeight: '700',
     fontFamily: 'Poppins',
   },
   hint: {

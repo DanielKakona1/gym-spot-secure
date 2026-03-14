@@ -3,8 +3,11 @@ import type { Booking, Gym, User } from '@gym-spot/shared-types';
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { BookingActiveBookingsCard } from '../components/BookingActiveBookingsCard';
 import { CapacityProgressBar } from '../components/CapacityProgressBar';
+import { ScreenHeader } from '../components/ScreenHeader';
 import { SearchSelectInput } from '../components/SearchSelectInput';
+import { TimeSlotGrid } from '../components/TimeSlotGrid';
 import { useBookSlot } from '../hooks/useBookSlot';
 import { useCapacity } from '../hooks/useCapacity';
 import { useGyms } from '../hooks/useGyms';
@@ -54,10 +57,6 @@ function toBookingDateTimeLabel(slotTime: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
-}
-
-function toBookingStatus(booking: Booking): NonNullable<Booking['status']> {
-  return booking.status ?? 'BOOKED';
 }
 
 function startOfToday(): Date {
@@ -247,13 +246,13 @@ export function BookingScreen({ onGoToAdmin }: Props) {
     <KeyboardAvoidingView style={styles.wrapper} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={80}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.overlay}>
-          <View style={styles.titleRow}>
-            <Text style={styles.title}>Spot Secure</Text>
-            <Pressable style={styles.adminButton} onPress={onGoToAdmin}>
-              <Text style={styles.adminButtonText}>Go to Admin</Text>
-            </Pressable>
-          </View>
-          <Text style={styles.subtitle}>Book your training slot in seconds.</Text>
+          <ScreenHeader
+            title="Spot Secure"
+            subtitle="Book your training slot in seconds."
+            actionLabel="Go to Admin"
+            onActionPress={onGoToAdmin}
+            titleSize={36}
+          />
 
           <SearchSelectInput
             label="Gym"
@@ -302,29 +301,11 @@ export function BookingScreen({ onGoToAdmin }: Props) {
             emptyText="No matching users."
           />
           {selectedUserId.length > 0 && (userBookingsQuery.data?.length ?? 0) > 0 && (
-            <View style={styles.activeBookingsCard}>
-              <Text style={styles.activeBookingsTitle}>Active booking</Text>
-              {(userBookingsQuery.data ?? []).map((booking) => {
-                const status = toBookingStatus(booking);
-                const gymLabel = gymsById.has(booking.gymId) ? toGymLabel(gymsById.get(booking.gymId) as Gym) : booking.gymId;
-                return (
-                  <View key={booking.id} style={styles.activeBookingRow}>
-                    <View style={styles.activeBookingBody}>
-                      <Text style={styles.activeBookingTime}>{toBookingDateTimeLabel(booking.slotTime)}</Text>
-                      <Text style={styles.activeBookingGym}>{gymLabel}</Text>
-                    </View>
-                    <Text
-                      style={[
-                        styles.statusBadge,
-                        status === 'CHECKED_IN' ? styles.statusBadgeCheckedIn : styles.statusBadgeBooked,
-                      ]}
-                    >
-                      {status === 'CHECKED_IN' ? 'Checked In' : 'Booked'}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
+            <BookingActiveBookingsCard
+              bookings={userBookingsQuery.data ?? []}
+              resolveGymLabel={(gymId) => (gymsById.has(gymId) ? toGymLabel(gymsById.get(gymId) as Gym) : gymId)}
+              formatSlotTime={toBookingDateTimeLabel}
+            />
           )}
 
           <Text style={styles.label}>Date</Text>
@@ -345,27 +326,15 @@ export function BookingScreen({ onGoToAdmin }: Props) {
           )}
 
           <Text style={styles.label}>Time</Text>
-          <View style={styles.timeGrid}>
-            {TIME_OPTIONS.map((option) => {
-              const isBooked = bookedTimeKeysForDate.has(option.key);
-              const isPast = isTimeSlotInPast(selectedDate, option.key);
-              const isFull = allSlotsFullForGym || fullTimeKeys.has(option.key);
-              const isSelected = option.key === selectedTimeKey;
-              return (
-                <Pressable key={option.key} style={[styles.timeChip, isSelected && styles.timeChipSelected, (!canSelectDateTime || isPast || isFull) && styles.timeChipDisabled]} onPress={() => setSelectedTimeKey(option.key)} disabled={!canSelectDateTime || isPast || isFull}>
-                  <Text style={[styles.timeChipText, isSelected && styles.timeChipTextSelected]}>{option.label}</Text>
-                  <Text
-                    style={[
-                      styles.timeChipBadge,
-                      isPast ? styles.timeChipBadgePast : isFull ? styles.timeChipBadgeFull : !isBooked && styles.timeChipBadgeHidden,
-                    ]}
-                  >
-                    {isPast ? 'Past' : isFull ? 'Full' : 'Booked'}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          <TimeSlotGrid
+            options={TIME_OPTIONS}
+            selectedTimeKey={selectedTimeKey}
+            canSelectDateTime={canSelectDateTime}
+            isTimeSlotPast={(timeKey) => isTimeSlotInPast(selectedDate, timeKey)}
+            isTimeSlotFull={(timeKey) => allSlotsFullForGym || fullTimeKeys.has(timeKey)}
+            isTimeSlotBooked={(timeKey) => bookedTimeKeysForDate.has(timeKey)}
+            onSelectTime={setSelectedTimeKey}
+          />
 
           {!canSelectDateTime && <Text style={styles.hint}>Select gym and user first to enable date and time.</Text>}
           {hasActiveBookingForSelectedDay && <Text style={styles.hint}>This user already has an active booking for this day.</Text>}
@@ -419,42 +388,6 @@ const styles = StyleSheet.create({
   overlay: {
     marginTop: 4,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  titleIcon: {
-    fontSize: 26,
-  },
-  title: {
-    color: '#132416',
-    fontSize: 36,
-    fontWeight: '700',
-    fontFamily: 'Poppins',
-  },
-  subtitle: {
-    color: '#4A6450',
-    marginTop: 6,
-    marginBottom: 18,
-    fontSize: 15,
-    fontFamily: 'Poppins',
-  },
-  adminButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#CEE8D4',
-    backgroundColor: '#FFFFFF',
-  },
-  adminButtonText: {
-    color: '#116F35',
-    fontSize: 12,
-    fontWeight: '700',
-    fontFamily: 'Poppins',
-  },
   label: {
     marginTop: 10,
     marginBottom: 6,
@@ -503,55 +436,6 @@ const styles = StyleSheet.create({
     color: '#207B3E',
     fontWeight: '700',
     fontFamily: 'Poppins',
-  },
-  timeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  timeChip: {
-    minWidth: '30%',
-    minHeight: 62,
-    borderWidth: 1,
-    borderColor: '#CFE2D4',
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  timeChipSelected: {
-    borderColor: '#2A8B4A',
-    backgroundColor: '#EAF7EE',
-  },
-  timeChipDisabled: {
-    opacity: 0.55,
-  },
-  timeChipText: {
-    color: '#213D28',
-    fontWeight: '600',
-    fontFamily: 'Poppins',
-  },
-  timeChipTextSelected: {
-    color: '#116F35',
-  },
-  timeChipBadge: {
-    marginTop: 2,
-    color: '#AA2341',
-    fontSize: 11,
-    fontWeight: '600',
-    fontFamily: 'Poppins',
-    lineHeight: 16,
-  },
-  timeChipBadgeHidden: {
-    color: 'transparent',
-  },
-  timeChipBadgeFull: {
-    color: '#C9304F',
-  },
-  timeChipBadgePast: {
-    color: '#8A6A14',
   },
   hint: {
     marginTop: 8,
@@ -609,57 +493,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     fontFamily: 'Poppins',
-  },
-  activeBookingsCard: {
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: '#CEE8D4',
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    padding: 12,
-    gap: 8,
-  },
-  activeBookingsTitle: {
-    color: '#1D3D20',
-    fontWeight: '700',
-    fontFamily: 'Poppins',
-  },
-  activeBookingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  activeBookingBody: {
-    flex: 1,
-  },
-  activeBookingTime: {
-    color: '#143319',
-    fontSize: 13,
-    fontWeight: '600',
-    fontFamily: 'Poppins',
-  },
-  activeBookingGym: {
-    color: '#486F4E',
-    fontSize: 12,
-    fontFamily: 'Poppins',
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    fontSize: 11,
-    fontWeight: '700',
-    fontFamily: 'Poppins',
-    overflow: 'hidden',
-  },
-  statusBadgeBooked: {
-    color: '#0F6D34',
-    backgroundColor: '#EAF7EE',
-  },
-  statusBadgeCheckedIn: {
-    color: '#0E4F7A',
-    backgroundColor: '#E7F3FF',
   },
   bottomStack: {
     position: 'absolute',
