@@ -1,6 +1,6 @@
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import type { Booking, Gym, User } from '@gym-spot/shared-types';
-import { useQueries, useQueryClient } from '@tanstack/react-query';
+import type { Gym, User } from '@gym-spot/shared-types';
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { BookingActiveBookingsCard } from '../components/BookingActiveBookingsCard';
@@ -8,13 +8,13 @@ import { CapacityProgressBar } from '../components/CapacityProgressBar';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { SearchSelectInput } from '../components/SearchSelectInput';
 import { TimeSlotGrid } from '../components/TimeSlotGrid';
+import { useBookingSlotState } from '../hooks/useBookingSlotState';
 import { useBookSlot } from '../hooks/useBookSlot';
-import { useCapacity } from '../hooks/useCapacity';
+import { useBookingSubmission } from '../hooks/useBookingSubmission';
 import { useGyms } from '../hooks/useGyms';
 import { useSearchSelect } from '../hooks/useSearchSelect';
 import { useUserBookings } from '../hooks/useUserBookings';
 import { useUsers } from '../hooks/useUsers';
-import { gymService } from '../services/gymService';
 
 const TIME_OPTIONS = [
   { key: '06:00', label: '06:00' },
@@ -32,13 +32,6 @@ function toSlotIso(dateKey: string, timeKey: string): string {
   const [hours, minutes] = timeKey.split(':').map(Number);
   const localDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
   return localDate.toISOString();
-}
-
-function toDateKey(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
 }
 
 function toDateLabel(date: Date): string {
@@ -63,16 +56,6 @@ function startOfToday(): Date {
   const value = new Date();
   value.setHours(0, 0, 0, 0);
   return value;
-}
-
-function isTimeSlotInPast(selectedDate: Date | null, timeKey: string): boolean {
-  if (!selectedDate) {
-    return false;
-  }
-  const [hours, minutes] = timeKey.split(':').map(Number);
-  const slot = new Date(selectedDate);
-  slot.setHours(hours, minutes, 0, 0);
-  return slot.getTime() < Date.now();
 }
 
 interface Props {
@@ -107,64 +90,44 @@ export function BookingScreen({ onGoToAdmin }: Props) {
   const selectedGymId = gymSelect.selectedId;
   const selectedUserId = userSelect.selectedId;
   const userBookingsQuery = useUserBookings(selectedUserId);
-
-  const selectedDateKey = useMemo(() => (selectedDate ? toDateKey(selectedDate) : ''), [selectedDate]);
-
-  const bookedTimeKeysForDate = useMemo(() => {
-    const bookings = userBookingsQuery.data ?? [];
-    return new Set(
-      bookings
-        .filter((booking: Booking) => booking.gymId === selectedGymId && toDateKey(new Date(booking.slotTime)) === selectedDateKey)
-        .map((booking: Booking) => {
-          const slotDate = new Date(booking.slotTime);
-          const hh = String(slotDate.getHours()).padStart(2, '0');
-          const mm = String(slotDate.getMinutes()).padStart(2, '0');
-          return `${hh}:${mm}`;
-        }),
-    );
-  }, [selectedDateKey, selectedGymId, userBookingsQuery.data]);
-
-  const selectedTimeIsBooked = bookedTimeKeysForDate.has(selectedTimeKey);
-  const canSelectDateTime = selectedGymId.length > 0 && selectedUserId.length > 0;
-  const hasActiveBookingForSelectedDay = useMemo(() => {
-    if (!selectedDateKey) {
-      return false;
-    }
-    return (userBookingsQuery.data ?? []).some((booking: Booking) => toDateKey(new Date(booking.slotTime)) === selectedDateKey);
-  }, [selectedDateKey, userBookingsQuery.data]);
-  const slotCapacityQueries = useQueries({
-    queries: TIME_OPTIONS.map((option) => ({
-      queryKey: ['capacity-by-time', selectedGymId, selectedDateKey, option.key],
-      queryFn: () => gymService.getCapacity(selectedGymId, toSlotIso(selectedDateKey, option.key)),
-      enabled: selectedGymId.length > 0 && selectedDateKey.length > 0,
-    })),
+  const {
+    selectedDateKey,
+    bookedTimeKeysForDate,
+    selectedTimeIsBooked,
+    canSelectDateTime,
+    hasActiveBookingForSelectedDay,
+    fullTimeKeys,
+    hasFullSlots,
+    allSlotsFullForGym,
+    selectedTimeIsPast,
+    selectedTimeIsFull,
+    isTimeSlotPast,
+    capacityQuery,
+  } = useBookingSlotState({
+    selectedGymId,
+    selectedUserId,
+    selectedDate,
+    selectedTimeKey,
+    userBookings: userBookingsQuery.data,
+    timeOptions: TIME_OPTIONS,
   });
-  const fullTimeKeys = useMemo(() => {
-    const keys = new Set<string>();
-    slotCapacityQueries.forEach((query, index) => {
-      if (query.data && query.data.currentBookings >= query.data.capacityLimit) {
-        keys.add(TIME_OPTIONS[index].key);
-      }
-    });
-    return keys;
-  }, [slotCapacityQueries]);
-  const selectedTimeIsPast = isTimeSlotInPast(selectedDate, selectedTimeKey);
-  const selectedTimeIsFullFromSlots = fullTimeKeys.has(selectedTimeKey);
-  const hasFullSlots = fullTimeKeys.size > 0;
-  const allSlotsFullForGymBySlots = fullTimeKeys.size >= TIME_OPTIONS.length;
-  const capacityTimeKey =
-    selectedTimeKey ||
-    TIME_OPTIONS.find((option) => !isTimeSlotInPast(selectedDate, option.key) && !fullTimeKeys.has(option.key))?.key ||
-    TIME_OPTIONS[0].key;
-  const slotIso = selectedDateKey && selectedGymId ? toSlotIso(selectedDateKey, capacityTimeKey) : '';
-
-  const capacityQuery = useCapacity(selectedGymId, slotIso);
-  const allSlotsFullForGymByCapacity = Boolean(
-    capacityQuery.data && capacityQuery.data.currentBookings >= capacityQuery.data.capacityLimit,
-  );
-  const allSlotsFullForGym = allSlotsFullForGymBySlots || allSlotsFullForGymByCapacity;
-  const selectedTimeIsFull = selectedTimeIsFullFromSlots || allSlotsFullForGym;
   const bookMutation = useBookSlot(selectedGymId);
+  const { submitDisabled, handleSubmit } = useBookingSubmission({
+    selectedGymId,
+    selectedUserId,
+    selectedDate,
+    selectedDateKey,
+    selectedTimeKey,
+    hasActiveBookingForSelectedDay,
+    allSlotsFullForGym,
+    selectedTimeIsBooked,
+    selectedTimeIsPast,
+    selectedTimeIsFull,
+    isBookPending: bookMutation.isPending,
+    canSelectDateTime,
+    onSubmitBooking: (payload) => bookMutation.mutate(payload),
+    toSlotIso,
+  });
   const gymsById = useMemo(() => {
     const map = new Map<string, Gym>();
     (gymsQuery.data ?? []).forEach((gym) => map.set(gym.id, gym));
@@ -179,14 +142,14 @@ export function BookingScreen({ onGoToAdmin }: Props) {
     if (!selectedTimeKey) {
       return;
     }
-    if (selectedTimeKey && !isTimeSlotInPast(selectedDate, selectedTimeKey) && !fullTimeKeys.has(selectedTimeKey) && !allSlotsFullForGym) {
+    if (selectedTimeKey && !isTimeSlotPast(selectedTimeKey) && !fullTimeKeys.has(selectedTimeKey) && !allSlotsFullForGym) {
       return;
     }
     const firstAvailable = TIME_OPTIONS.find(
-      (option) => !allSlotsFullForGym && !isTimeSlotInPast(selectedDate, option.key) && !fullTimeKeys.has(option.key),
+      (option) => !allSlotsFullForGym && !isTimeSlotPast(option.key) && !fullTimeKeys.has(option.key),
     );
     setSelectedTimeKey(firstAvailable?.key ?? '');
-  }, [allSlotsFullForGym, canSelectDateTime, selectedDateKey, selectedDate, fullTimeKeys, selectedTimeKey]);
+  }, [allSlotsFullForGym, canSelectDateTime, isTimeSlotPast, selectedDateKey, fullTimeKeys, selectedTimeKey]);
 
   useEffect(() => {
     if (!bookMutation.isSuccess) {
@@ -209,38 +172,7 @@ export function BookingScreen({ onGoToAdmin }: Props) {
     }
   };
 
-  const onSubmit = () => {
-    if (!selectedGymId || !selectedUserId || !selectedDateKey || !selectedTimeKey) {
-      setFormError('Please select gym, user, date, and time.');
-      return;
-    }
-    if (hasActiveBookingForSelectedDay) {
-      setFormError('This user already has an active booking for this day.');
-      return;
-    }
-    if (allSlotsFullForGym) {
-      setFormError('This gym is fully booked for this date.');
-      return;
-    }
-    if (selectedTimeIsBooked) {
-      setFormError('This user already booked this exact slot. Choose another time.');
-      return;
-    }
-    if (selectedTimeIsPast) {
-      setFormError('This time slot has already passed.');
-      return;
-    }
-    if (selectedTimeIsFull) {
-      setFormError('This time slot is full.');
-      return;
-    }
-
-    setFormError(null);
-    bookMutation.mutate({
-      userId: selectedUserId,
-      slotTime: toSlotIso(selectedDateKey, selectedTimeKey),
-    });
-  };
+  const onSubmit = () => handleSubmit(setFormError);
 
   return (
     <KeyboardAvoidingView style={styles.wrapper} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={80}>
@@ -330,7 +262,7 @@ export function BookingScreen({ onGoToAdmin }: Props) {
             options={TIME_OPTIONS}
             selectedTimeKey={selectedTimeKey}
             canSelectDateTime={canSelectDateTime}
-            isTimeSlotPast={(timeKey) => isTimeSlotInPast(selectedDate, timeKey)}
+            isTimeSlotPast={isTimeSlotPast}
             isTimeSlotFull={(timeKey) => allSlotsFullForGym || fullTimeKeys.has(timeKey)}
             isTimeSlotBooked={(timeKey) => bookedTimeKeysForDate.has(timeKey)}
             onSelectTime={setSelectedTimeKey}
@@ -366,7 +298,7 @@ export function BookingScreen({ onGoToAdmin }: Props) {
             </Text>
           )}
         </View>
-        <Pressable style={[styles.submitButton, (bookMutation.isPending || hasActiveBookingForSelectedDay || selectedTimeIsBooked || selectedTimeIsPast || selectedTimeIsFull || allSlotsFullForGym || !selectedTimeKey || !canSelectDateTime || !selectedDate) && styles.submitButtonDisabled]} onPress={onSubmit} disabled={bookMutation.isPending || hasActiveBookingForSelectedDay || selectedTimeIsBooked || selectedTimeIsPast || selectedTimeIsFull || allSlotsFullForGym || !selectedTimeKey || !canSelectDateTime || !selectedDate}>
+        <Pressable style={[styles.submitButton, submitDisabled && styles.submitButtonDisabled]} onPress={onSubmit} disabled={submitDisabled}>
           <Text style={styles.submitButtonText}>Book Slot</Text>
         </Pressable>
       </View>
