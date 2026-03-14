@@ -12,7 +12,7 @@ describe('gymService', () => {
     const gyms = [{ id: 'gym-1', name: 'Peak Club', capacityLimit: 30 }];
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
-      json: async () => gyms,
+      json: async () => ({ success: true, data: gyms }),
     });
 
     const result = await gymService.listGyms();
@@ -27,7 +27,7 @@ describe('gymService', () => {
 
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
-      json: async () => capacity,
+      json: async () => ({ success: true, data: capacity }),
     });
 
     const result = await gymService.getCapacity('gym-1', slotTime);
