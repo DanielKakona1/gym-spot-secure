@@ -10,16 +10,7 @@ import { useBookingAdminActions } from '../hooks/useBookingAdminActions';
 import { useUserBookings } from '../hooks/useUserBookings';
 import { useSearchSelect } from '../hooks/useSearchSelect';
 import { useUsers } from '../hooks/useUsers';
-
-function toDateTimeLabel(slotTime: string): string {
-  return new Date(slotTime).toLocaleString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
+import { formatDateTimeLabel } from '../lib/formatters';
 
 function canCheckIn(booking: Booking): boolean {
   return (booking.status ?? 'BOOKED') === 'BOOKED';
@@ -115,7 +106,7 @@ export function AdminScreen({ onBackToBooking }: Props) {
             onCheckIn={() => actionMutation.mutate({ action: 'CHECK_IN', booking })}
             onCheckOut={() => actionMutation.mutate({ action: 'CHECK_OUT', booking })}
             onCancel={() => actionMutation.mutate({ action: 'CANCEL', booking })}
-            formatSlotTime={toDateTimeLabel}
+            formatSlotTime={formatDateTimeLabel}
           />
         ))}
       </ScrollView>

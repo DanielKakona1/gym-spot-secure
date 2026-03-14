@@ -18,6 +18,7 @@ import { useGyms } from '../hooks/useGyms';
 import { useSearchSelect } from '../hooks/useSearchSelect';
 import { useUserBookings } from '../hooks/useUserBookings';
 import { useUsers } from '../hooks/useUsers';
+import { formatDateLabel, formatDateTimeLabel, formatGymLabel } from '../lib/formatters';
 
 const TIME_OPTIONS = [
   { key: '06:00', label: '06:00' },
@@ -35,24 +36,6 @@ function toSlotIso(dateKey: string, timeKey: string): string {
   const [hours, minutes] = timeKey.split(':').map(Number);
   const localDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
   return localDate.toISOString();
-}
-
-function toDateLabel(date: Date): string {
-  return date.toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric' });
-}
-
-function toGymLabel(gym: Gym): string {
-  return gym.location ? `${gym.name} — ${gym.location}` : gym.name;
-}
-
-function toBookingDateTimeLabel(slotTime: string): string {
-  return new Date(slotTime).toLocaleString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 function startOfToday(): Date {
@@ -78,7 +61,7 @@ export function BookingScreen({ onGoToAdmin }: Props) {
   const usersQuery = useUsers();
   const gymSelect = useSearchSelect<Gym>({
     options: gymsQuery.data ?? [],
-    getOptionLabel: toGymLabel,
+    getOptionLabel: formatGymLabel,
     onClear: () => {
       setSelectedTimeKey('');
     },
@@ -202,7 +185,7 @@ export function BookingScreen({ onGoToAdmin }: Props) {
             isLoading={gymsQuery.isLoading}
             options={gymSelect.filteredOptions}
             selectedOptionId={selectedGymId}
-            getOptionLabel={toGymLabel}
+            getOptionLabel={formatGymLabel}
             onSelectOption={(gym) => {
               gymSelect.onSelectOption(gym);
               setSelectedTimeKey('');
@@ -238,8 +221,8 @@ export function BookingScreen({ onGoToAdmin }: Props) {
           {selectedUserId.length > 0 && (userBookingsQuery.data?.length ?? 0) > 0 && (
             <BookingActiveBookingsCard
               bookings={userBookingsQuery.data ?? []}
-              resolveGymLabel={(gymId) => (gymsById.has(gymId) ? toGymLabel(gymsById.get(gymId) as Gym) : gymId)}
-              formatSlotTime={toBookingDateTimeLabel}
+              resolveGymLabel={(gymId) => (gymsById.has(gymId) ? formatGymLabel(gymsById.get(gymId) as Gym) : gymId)}
+              formatSlotTime={formatDateTimeLabel}
             />
           )}
 
@@ -248,7 +231,7 @@ export function BookingScreen({ onGoToAdmin }: Props) {
             minimumDate={minimumDate}
             canSelect={canSelectDateTime}
             showPicker={showDatePicker}
-            displayValue={selectedDate ? toDateLabel(selectedDate) : 'Select date'}
+            displayValue={selectedDate ? formatDateLabel(selectedDate) : 'Select date'}
             onTogglePicker={() => setShowDatePicker((prev) => !prev)}
             onChangeDate={onChangeDate}
             onDone={() => setShowDatePicker(false)}
