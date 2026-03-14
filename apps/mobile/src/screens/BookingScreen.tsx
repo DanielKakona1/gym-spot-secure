@@ -1,10 +1,11 @@
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import type { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import type { Gym, User } from '@gym-spot/shared-types';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppButton } from '../components/AppButton';
 import { BookingActiveBookingsCard } from '../components/BookingActiveBookingsCard';
+import { DatePickerField } from '../components/DatePickerField';
 import { LiveCapacityCard } from '../components/LiveCapacityCard';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { SearchSelectInput } from '../components/SearchSelectInput';
@@ -241,22 +242,16 @@ export function BookingScreen({ onGoToAdmin }: Props) {
             />
           )}
 
-          <Text style={styles.label}>Date</Text>
-          <Pressable style={[styles.input, !canSelectDateTime && styles.inputDisabled]} onPress={() => setShowDatePicker((prev) => !prev)} disabled={!canSelectDateTime}>
-            <Text style={[styles.inputValue, !selectedDate && styles.inputPlaceholder]}>
-              {selectedDate ? toDateLabel(selectedDate) : 'Select date'}
-            </Text>
-          </Pressable>
-          {showDatePicker && (
-            <View style={styles.pickerWrap}>
-              <DateTimePicker value={selectedDate ?? minimumDate} mode="date" display={Platform.OS === 'ios' ? 'inline' : 'default'} minimumDate={minimumDate} onChange={onChangeDate} />
-              {Platform.OS === 'ios' && (
-                <Pressable style={styles.pickerDone} onPress={() => setShowDatePicker(false)}>
-                  <Text style={styles.pickerDoneText}>Done</Text>
-                </Pressable>
-              )}
-            </View>
-          )}
+          <DatePickerField
+            selectedDate={selectedDate}
+            minimumDate={minimumDate}
+            canSelect={canSelectDateTime}
+            showPicker={showDatePicker}
+            displayValue={selectedDate ? toDateLabel(selectedDate) : 'Select date'}
+            onTogglePicker={() => setShowDatePicker((prev) => !prev)}
+            onChangeDate={onChangeDate}
+            onDone={() => setShowDatePicker(false)}
+          />
 
           <Text style={styles.label}>Time</Text>
           <TimeSlotGrid
@@ -322,47 +317,6 @@ const styles = StyleSheet.create({
     color: '#26482E',
     fontSize: 14,
     fontWeight: '600',
-    fontFamily: 'Poppins',
-  },
-  input: {
-    minHeight: 54,
-    borderWidth: 1,
-    borderColor: '#D2E3D7',
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    color: '#17281A',
-    fontSize: 16,
-    justifyContent: 'center',
-    fontFamily: 'Poppins',
-  },
-  inputValue: {
-    color: '#17281A',
-    fontSize: 16,
-    fontFamily: 'Poppins',
-  },
-  inputPlaceholder: {
-    color: '#8AA091',
-  },
-  inputDisabled: {
-    opacity: 0.5,
-  },
-  pickerWrap: {
-    marginTop: 8,
-    borderColor: '#D9EBDE',
-    borderWidth: 1,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
-  },
-  pickerDone: {
-    alignSelf: 'flex-end',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  pickerDoneText: {
-    color: '#207B3E',
-    fontWeight: '700',
     fontFamily: 'Poppins',
   },
   hint: {

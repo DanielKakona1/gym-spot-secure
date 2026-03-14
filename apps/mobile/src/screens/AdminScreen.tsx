@@ -1,14 +1,13 @@
 import type { Booking, User } from '@gym-spot/shared-types';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AdminBookingCard } from '../components/AdminBookingCard';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { SearchSelectInput } from '../components/SearchSelectInput';
+import { useBookingAdminActions } from '../hooks/useBookingAdminActions';
 import { useUserBookings } from '../hooks/useUserBookings';
 import { useSearchSelect } from '../hooks/useSearchSelect';
 import { useUsers } from '../hooks/useUsers';
-import { gymService } from '../services/gymService';
 
 function toDateTimeLabel(slotTime: string): string {
   return new Date(slotTime).toLocaleString(undefined, {
@@ -37,7 +36,6 @@ interface Props {
 }
 
 export function AdminScreen({ onBackToBooking }: Props) {
-  const queryClient = useQueryClient();
   const [selectedUserId, setSelectedUserId] = useState('');
 
   const usersQuery = useUsers();
@@ -50,22 +48,7 @@ export function AdminScreen({ onBackToBooking }: Props) {
   });
   const bookingsQuery = useUserBookings(selectedUserId);
 
-  const actionMutation = useMutation({
-    mutationFn: async ({ action, booking }: { action: 'CHECK_IN' | 'CHECK_OUT' | 'CANCEL'; booking: Booking }) => {
-      if (action === 'CHECK_IN') {
-        return gymService.checkInBooking(booking.gymId, booking.id);
-      }
-      if (action === 'CHECK_OUT') {
-        return gymService.checkOutBooking(booking.gymId, booking.id);
-      }
-      return gymService.cancelBooking(booking.gymId, booking.id);
-    },
-    onSuccess: (_booking, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['user-bookings', variables.booking.userId] });
-      queryClient.invalidateQueries({ queryKey: ['capacity'] });
-      queryClient.invalidateQueries({ queryKey: ['capacity-by-time'] });
-    },
-  });
+  const actionMutation = useBookingAdminActions();
 
   return (
     <View style={styles.wrapper}>
