@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { AppButton } from './AppButton';
 
 interface ScreenHeaderProps {
   title: string;
@@ -19,9 +20,7 @@ export function ScreenHeader({
     <>
       <View style={styles.row}>
         <Text style={[styles.title, { fontSize: titleSize }]}>{title}</Text>
-        <Pressable style={styles.actionButton} onPress={onActionPress}>
-          <Text style={styles.actionButtonText}>{actionLabel}</Text>
-        </Pressable>
+        <AppButton label={actionLabel} onPress={onActionPress} variant="outline" size="sm" />
       </View>
 
       <Text style={styles.subtitle}>{subtitle}</Text>
@@ -46,20 +45,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 18,
     fontSize: 15,
-    fontFamily: 'Poppins',
-  },
-  actionButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#CEE8D4',
-    backgroundColor: '#FFFFFF',
-  },
-  actionButtonText: {
-    color: '#116F35',
-    fontSize: 12,
-    fontWeight: '700',
     fontFamily: 'Poppins',
   },
 });

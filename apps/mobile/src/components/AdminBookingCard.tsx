@@ -1,5 +1,6 @@
 import type { Booking } from '@gym-spot/shared-types';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { AppButton } from './AppButton';
 
 interface AdminBookingCardProps {
   booking: Booking;
@@ -35,17 +36,9 @@ export function AdminBookingCard({
       <Text style={styles.cardMeta}>Status: {toStatusLabel(booking)}</Text>
 
       <View style={styles.actionsRow}>
-        <Pressable style={[styles.actionButton, !canCheckIn && styles.actionButtonDisabled]} disabled={!canCheckIn || isPending} onPress={onCheckIn}>
-          <Text style={styles.actionButtonText}>Check In</Text>
-        </Pressable>
-
-        <Pressable style={[styles.actionButton, !canCheckOut && styles.actionButtonDisabled]} disabled={!canCheckOut || isPending} onPress={onCheckOut}>
-          <Text style={styles.actionButtonText}>Check Out</Text>
-        </Pressable>
-
-        <Pressable style={[styles.actionButtonDanger, !canCancel && styles.actionButtonDisabled]} disabled={!canCancel || isPending} onPress={onCancel}>
-          <Text style={styles.actionButtonText}>Cancel</Text>
-        </Pressable>
+        <AppButton label="Check In" size="sm" disabled={!canCheckIn || isPending} onPress={onCheckIn} style={styles.actionButton} />
+        <AppButton label="Check Out" size="sm" disabled={!canCheckOut || isPending} onPress={onCheckOut} style={styles.actionButton} />
+        <AppButton label="Cancel" size="sm" variant="danger" disabled={!canCancel || isPending} onPress={onCancel} style={styles.actionButton} />
       </View>
     </View>
   );
@@ -79,25 +72,5 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    borderRadius: 10,
-    backgroundColor: '#1F8E46',
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  actionButtonDanger: {
-    flex: 1,
-    borderRadius: 10,
-    backgroundColor: '#C9304F',
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  actionButtonDisabled: {
-    opacity: 0.45,
-  },
-  actionButtonText: {
-    color: '#F2FFF5',
-    fontSize: 12,
-    fontWeight: '700',
-    fontFamily: 'Poppins',
   },
 });

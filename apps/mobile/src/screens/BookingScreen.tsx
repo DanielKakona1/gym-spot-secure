@@ -3,8 +3,9 @@ import type { Gym, User } from '@gym-spot/shared-types';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AppButton } from '../components/AppButton';
 import { BookingActiveBookingsCard } from '../components/BookingActiveBookingsCard';
-import { CapacityProgressBar } from '../components/CapacityProgressBar';
+import { LiveCapacityCard } from '../components/LiveCapacityCard';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { SearchSelectInput } from '../components/SearchSelectInput';
 import { TimeSlotGrid } from '../components/TimeSlotGrid';
@@ -282,25 +283,20 @@ export function BookingScreen({ onGoToAdmin }: Props) {
         </View>
       </ScrollView>
       <View style={styles.bottomStack}>
-        <View style={styles.capacityBox}>
-          <Text style={styles.capacityTitle}>Live Capacity</Text>
-          {capacityQuery.isLoading && <ActivityIndicator testID="capacity-loading" color="#1F8E46" />}
-          {capacityQuery.data && (
-            <CapacityProgressBar
-              currentBookings={capacityQuery.data.currentBookings}
-              capacityLimit={capacityQuery.data.capacityLimit}
-              fullnessPercentage={capacityQuery.data.fullnessPercentage}
-            />
-          )}
-          {capacityQuery.isError && (
-            <Text testID="capacity-error" style={styles.error}>
-              {capacityQuery.error.message}
-            </Text>
-          )}
-        </View>
-        <Pressable style={[styles.submitButton, submitDisabled && styles.submitButtonDisabled]} onPress={onSubmit} disabled={submitDisabled}>
-          <Text style={styles.submitButtonText}>Book Slot</Text>
-        </Pressable>
+        <LiveCapacityCard
+          isLoading={capacityQuery.isLoading}
+          data={
+            capacityQuery.data
+              ? {
+                  currentBookings: capacityQuery.data.currentBookings,
+                  capacityLimit: capacityQuery.data.capacityLimit,
+                  fullnessPercentage: capacityQuery.data.fullnessPercentage,
+                }
+              : undefined
+          }
+          errorMessage={capacityQuery.isError ? capacityQuery.error.message : undefined}
+        />
+        <AppButton label="Book Slot" onPress={onSubmit} disabled={submitDisabled} style={styles.submitButton} />
       </View>
     </KeyboardAvoidingView>
   );
@@ -390,41 +386,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Poppins',
   },
-  capacityBox: {
-    padding: 14,
-    borderRadius: 14,
-    backgroundColor: '#EEF7F0',
-    borderColor: '#CEE8D4',
-    borderWidth: 1,
-  },
-  capacityTitle: {
-    color: '#1D3D20',
-    fontWeight: '600',
-    marginBottom: 4,
-    fontFamily: 'Poppins',
-  },
-  capacityText: {
-    color: '#13703A',
-    fontSize: 16,
-    fontWeight: '700',
-    fontFamily: 'Poppins',
-  },
   submitButton: {
     marginTop: 12,
-    backgroundColor: '#1F8E46',
-    borderRadius: 14,
-    height: 54,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  submitButtonDisabled: {
-    opacity: 0.5,
-  },
-  submitButtonText: {
-    color: '#EFFFF2',
-    fontSize: 17,
-    fontWeight: '700',
-    fontFamily: 'Poppins',
   },
   bottomStack: {
     position: 'absolute',
