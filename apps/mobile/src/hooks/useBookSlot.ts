@@ -7,12 +7,15 @@ export function useBookSlot(gymId: string) {
 
   return useMutation({
     mutationFn: (request: BookingRequest) => gymService.bookSlot(gymId, request),
-    onSuccess: (booking) => {
+    onSettled: (_booking, _error, request) => {
       queryClient.invalidateQueries({
-        queryKey: ['capacity', gymId, booking.slotTime],
+        queryKey: ['capacity', gymId],
       });
       queryClient.invalidateQueries({
-        queryKey: ['user-bookings', booking.userId],
+        queryKey: ['capacity-by-time', gymId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['user-bookings', request.userId],
       });
     },
   });
