@@ -2,15 +2,22 @@ import type { Booking, BookingRequest, CapacityResponse, Gym, User } from '@gym-
 
 const API_BASE_URL = 'http://localhost:3000';
 
+interface ApiEnvelope<T> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: string;
+}
+
 async function parseResponse<T>(response: Response): Promise<T> {
-  const payload = await response.json();
+  const payload = (await response.json()) as ApiEnvelope<T>;
 
   if (!response.ok) {
     const message = typeof payload?.message === 'string' ? payload.message : 'Request failed';
     throw new Error(message);
   }
 
-  return payload as T;
+  return payload.data as T;
 }
 
 export const gymService = {

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Booking, BookingRequest, CapacityResponse } from '@gym-spot/shared-types';
-import { createCapacityExceededError, createConflictError, createNotFoundError } from '../errors/domain.error';
+import { createCapacityExceededError, createConflictError, createNotFoundError } from '../utils/send-error.util';
 import { BookingModel } from '../models/booking.model';
 import { GymModel } from '../models/gym.model';
 import { LockManager, createLockManager } from '../utils/lock-manager.util';
@@ -110,23 +110,6 @@ export function createBookingService(
       const bookingsCount = countedBookings.length;
       const fullnessPercentage = Math.round((bookingsCount / gym.capacityLimit) * 100);
 
-      if (process.env.CAPACITY_DEBUG === 'true') {
-        console.info(
-          '[capacity-debug]',
-          JSON.stringify({
-            gymId,
-            slotTime,
-            dayKey: toDayKey(slotTime),
-            currentBookings: bookingsCount,
-            countedBookings: countedBookings.map((booking) => ({
-              id: booking.id,
-              userId: booking.userId,
-              slotTime: booking.slotTime,
-              status: getStatus(booking),
-            })),
-          }),
-        );
-      }
 
       return {
         gymId,

@@ -19,11 +19,12 @@ describe('gym.controller', () => {
 
     const response = await request(app.server).get(`/gyms/gym-1/capacity?slotTime=${encodeURIComponent(slotTime)}`).expect(200);
 
-    expect(response.body.gymId).toBe('gym-1');
-    expect(response.body.currentBookings).toBeGreaterThanOrEqual(0);
-    expect(response.body.capacityLimit).toBe(30);
-    expect(response.body.fullnessPercentage).toBe(
-      Math.round((response.body.currentBookings / response.body.capacityLimit) * 100),
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.gymId).toBe('gym-1');
+    expect(response.body.data.currentBookings).toBeGreaterThanOrEqual(0);
+    expect(response.body.data.capacityLimit).toBe(30);
+    expect(response.body.data.fullnessPercentage).toBe(
+      Math.round((response.body.data.currentBookings / response.body.data.capacityLimit) * 100),
     );
   });
 
@@ -41,10 +42,11 @@ describe('gym.controller', () => {
 
     const response = await request(app.server).post('/gyms/gym-1/book').send(payload).expect(201);
 
-    expect(response.body.gymId).toBe('gym-1');
-    expect(response.body.userId).toBe('user-1');
-    expect(response.body.slotTime).toBe(payload.slotTime);
-    expect(typeof response.body.id).toBe('string');
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.gymId).toBe('gym-1');
+    expect(response.body.data.userId).toBe('user-1');
+    expect(response.body.data.slotTime).toBe(payload.slotTime);
+    expect(typeof response.body.data.id).toBe('string');
   });
 
   it('POST /gyms/:id/book returns 409 on duplicate booking', async () => {

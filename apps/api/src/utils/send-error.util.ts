@@ -1,3 +1,5 @@
+import type { FastifyReply } from 'fastify';
+
 export type DomainErrorCode = 'NOT_FOUND' | 'CONFLICT' | 'CAPACITY_EXCEEDED';
 
 export interface DomainError {
@@ -38,4 +40,18 @@ export function isConflictError(error: unknown): error is DomainError {
 
 export function isCapacityExceededError(error: unknown): error is DomainError {
   return isDomainErrorWithCode(error, 'CAPACITY_EXCEEDED');
+}
+
+export function sendError(error: unknown, reply: FastifyReply): void {
+  if (isNotFoundError(error)) {
+    reply.status(404).send({ success: false, error: error.message, message: error.message });
+    return;
+  }
+
+  if (isConflictError(error) || isCapacityExceededError(error)) {
+    reply.status(409).send({ success: false, error: error.message, message: error.message });
+    return;
+  }
+
+  reply.status(500).send({ success: false, error: 'Unexpected error', message: 'Unexpected error' });
 }
